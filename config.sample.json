@@ -1,0 +1,18 @@
+{
+  "GITHUB_TOKEN": "",
+  "MY_USERNAME": "tiller",
+  "TEAM_MEMBERS": [
+    "valentinbureaupro",
+    "eeric-zhou",
+    "Julien-Eyraud",
+    "cemercier",
+    "mblanchard-mirakl",
+    "mafelipez",
+    "lydiakezman",
+    "maxgabut",
+    "kirinux",
+    "tiller"
+  ],
+  "POLL_INTERVAL": 5,
+  "PORT": 3001
+}

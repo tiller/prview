@@ -1,0 +1,136 @@
+# Pr_view
+
+A self-hosted Node.js/React web app that tracks GitHub pull requests and surfaces unread activity, built for individuals working in team-based GitHub orgs.
+
+## Features
+
+- **Four categories** of PRs automatically sorted per sync:
+  - **Authored** — PRs you opened
+  - **Direct Reviewer** — PRs where you are explicitly requested as a reviewer, or have already reviewed
+  - **Team** — PRs from your team (split into "review requested" and "from your team" watching list)
+  - **Others** — PRs where your team is requested as reviewer but the author is outside your team
+- **Unread tracking** — PRs are flagged as new/changed based on GitHub activity since you last viewed them (Team/Others use simpler "never seen" logic)
+- **Activity summary** — click a PR row to expand an inline panel showing commits, comments, and reviews since your last read
+- **Jira links** — issue keys in PR titles (e.g. `ACCOUNT-1234`) are auto-detected and linked to Atlassian
+- **Auto-poll** — backend syncs with GitHub every N minutes (configurable)
+- **Manual refresh** — trigger an immediate sync from the UI
+- **Mark as read** — per-PR or bulk (current page / all)
+- **Missing approvals filter** — toggle in Team and Others to show only PRs with fewer than 2 approvals
+- **URL-based navigation** — category is reflected in the URL (`/authored`, `/direct`, etc.) so the page survives a refresh
+
+## Requirements
+
+- Node.js 22.5+ (uses the built-in `node:sqlite` module)
+- A GitHub Personal Access Token with `repo` and `read:org` scopes
+- If your org uses SAML SSO, the token must also be authorized for the org
+
+## Setup
+
+### 1. Clone and install
+
+```bash
+git clone <repo-url>
+cd prview
+npm install
+cd frontend && npm install && cd ..
+```
+
+### 2. Configure
+
+Copy or edit `config.json` (this file is gitignored):
+
+```json
+{
+  "GITHUB_TOKEN": "ghp_your_token_here",
+  "MY_USERNAME": "your-github-handle",
+  "TEAM_MEMBERS": ["alice", "bob", "charlie"],
+  "POLL_INTERVAL": 5,
+  "PORT": 3001
+}
+```
+
+| Key | Description |
+|-----|-------------|
+| `GITHUB_TOKEN` | GitHub PAT with `repo` + `read:org` scopes. If org uses SAML SSO, authorize the token for the org. |
+| `MY_USERNAME` | Your GitHub login |
+| `TEAM_MEMBERS` | Array of GitHub logins of your direct teammates |
+| `POLL_INTERVAL` | Sync interval in minutes |
+| `PORT` | Port the server listens on |
+
+### 3. Build the frontend
+
+```bash
+cd frontend && npm run build && cd ..
+```
+
+### 4. Start
+
+```bash
+node backend/server.js
+```
+
+Then open `http://localhost:3001`.
+
+## Running as a systemd user service
+
+```bash
+cp prview.service ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now prview
+```
+
+To keep it running after logout:
+
+```bash
+loginctl enable-linger $USER
+```
+
+Check logs:
+
+```bash
+journalctl --user -u prview -f
+```
+
+## Development
+
+Run backend and frontend dev servers separately:
+
+```bash
+# Terminal 1 — backend (port 3001)
+node backend/server.js
+
+# Terminal 2 — frontend dev server with HMR (port 5173, proxies /api to 3001)
+cd frontend && npm run dev
+```
+
+## Project structure
+
+```
+prview/
+├── config.json              # Local config (gitignored)
+├── prview.db                # SQLite database (auto-created, gitignored)
+├── prview.service           # systemd user service template
+├── backend/
+│   ├── server.js            # Express app + API routes
+│   ├── db.js                # SQLite access via node:sqlite
+│   ├── github.js            # GitHub GraphQL fetcher + categorization
+│   └── poller.js            # node-cron polling loop
+└── frontend/
+    ├── src/
+    │   ├── App.jsx           # Root component, state, routing
+    │   ├── Sidebar.jsx       # Category nav with unread badges
+    │   ├── PRList.jsx        # PR list, groups, activity panel
+    │   ├── api.js            # fetch wrappers for the backend API
+    │   └── index.css         # Styles
+    └── vite.config.js
+```
+
+## API
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/prs` | All PRs with sync status |
+| `POST` | `/api/sync` | Trigger immediate GitHub sync |
+| `POST` | `/api/prs/:id/read` | Mark one PR as read |
+| `POST` | `/api/prs/read-bulk` | Mark multiple PRs as read (`{ ids: [...] }`) |
+| `GET` | `/api/prs/:id/activity` | Activity since last read for a PR |

@@ -1,0 +1,16 @@
+[Unit]
+Description=Pr_view GitHub PR tracker
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/michael.longo/random/prview
+ExecStart=/home/michael.longo/.volta/bin/node backend/server.js
+Restart=on-failure
+RestartSec=5
+Environment=NODE_ENV=production
+Environment=VOLTA_HOME=/home/michael.longo/.volta
+Environment=PATH=/home/michael.longo/.volta/bin:/usr/local/bin:/usr/bin:/bin
+
+[Install]
+WantedBy=default.target

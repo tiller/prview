@@ -13,6 +13,6 @@
     "kirinux",
     "tiller"
   ],
-  "POLL_INTERVAL": 5,
+  "POLL_INTERVAL": 15,
   "PORT": 3001
 }
